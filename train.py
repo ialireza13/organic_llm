@@ -43,6 +43,7 @@ def get_args(argv=None):
     ap.add_argument("--metric_bs", type=int, default=8)
     ap.add_argument("--save_at", default="", help="comma-separated fractions of training to checkpoint at")
     ap.add_argument("--stop_frac", type=float, default=1.0)
+    ap.add_argument("--ckpt_every", type=int, default=200, help="steps between resume checkpoints (0 = off)")
     ap.add_argument("--run_name", default=None)
     ap.add_argument("--no_compile", action="store_true")
     ap.add_argument("--micro", type=int, default=None, help="micro-batch size (seqs); default from scale preset")
@@ -156,7 +157,7 @@ class Trainer:
         return {"model": self.model.state_dict(), "opt": self.opt.state_dict(), "ctl": self.ctl.state_dict(),
                 "active_heads": self.model.active_heads, "active_ffn": self.model.active_ffn, "step": self.step,
                 "flops": self.flops, "tokens": self.tokens, "cfg": self.cfg.to_dict(), "args": vars(self.args),
-                "total_steps": self.total_steps}
+                "total_steps": self.total_steps, "wall": getattr(self, "wall", 0.0)}
 
     def save(self, path):
         tmp = str(path) + ".tmp"
@@ -174,6 +175,7 @@ class Trainer:
         self.model.active_heads = list(sd["active_heads"])
         self.model.active_ffn = list(sd["active_ffn"])
         self.step, self.flops, self.tokens = sd["step"], sd["flops"], sd["tokens"]
+        self.wall = sd.get("wall", 0.0)
 
     # ------------------------------------------------------------------
     def run(self):
@@ -182,15 +184,30 @@ class Trainer:
                    "tokens_per_step": self.tokens_per_step, "event_steps": self.ctl.event_steps,
                    "warmup": self.warmup, "ramp_steps": self.ramp},
                   open(os.path.join(self.res_dir, "config.json"), "w"), indent=1)
-        ftrain = open(os.path.join(self.res_dir, "train_log.csv"), "w", newline="")
-        wtrain = csv.writer(ftrain)
-        wtrain.writerow(["step", "loss", "grad_norm", "lr", "tokens", "flops", "tok_per_s", "elapsed_s"])
-        fval = open(os.path.join(self.res_dir, "val_log.csv"), "w", newline="")
-        wval = csv.writer(fval)
-        wval.writerow(["step", "tokens", "flops", "val_loss", "active_nonemb_params"])
-        fev = open(os.path.join(self.res_dir, "growth_events.csv"), "w", newline="")
-        wev = csv.writer(fev)
-        wev.writerow(["step", "event", "kind", "layer", "score", "params", "flops_per_token_after"])
+        latest = os.path.join(self.ckpt_dir, "ckpt_latest.pt")
+        heads = {"train_log.csv": ["step", "loss", "grad_norm", "lr", "tokens", "flops", "tok_per_s", "elapsed_s"],
+                 "val_log.csv": ["step", "tokens", "flops", "val_loss", "active_nonemb_params"],
+                 "growth_events.csv": ["step", "event", "kind", "layer", "score", "params", "flops_per_token_after"]}
+        self.wall = 0.0
+        if a.ckpt_every and os.path.exists(latest):  # resume after a crash / instance restart
+            self.load(latest)
+            print(f"RESUMED from {latest} at step {self.step}", flush=True)
+            for fn, h in heads.items():  # drop rows logged after the checkpoint (they will be re-done)
+                path = os.path.join(self.res_dir, fn)
+                rows = list(csv.reader(open(path))) if os.path.exists(path) else [h]
+                keep = [rows[0]] + [r for r in rows[1:] if r and int(float(r[0])) < self.step]
+                csv.writer(open(path, "w", newline="")).writerows(keep)
+            mode = "a"
+        else:
+            mode = "w"
+        files = {fn: open(os.path.join(self.res_dir, fn), mode, newline="") for fn in heads}
+        writers = {fn: csv.writer(f) for fn, f in files.items()}
+        if mode == "w":
+            for fn, h in heads.items():
+                writers[fn].writerow(h)
+        ftrain, fval, fev = files["train_log.csv"], files["val_log.csv"], files["growth_events.csv"]
+        wtrain, wval, wev = writers["train_log.csv"], writers["val_log.csv"], writers["growth_events.csv"]
+        wall0 = self.wall
         stop_step = int(round(a.stop_frac * self.total_steps))
         t_start = time.time()
         t_last, tok_last = time.time(), 0
@@ -213,6 +230,11 @@ class Trainer:
             self.flops += self.model.flops_per_token() * self.tokens_per_step
             self.tokens += self.tokens_per_step
             self.step += 1
+            if a.ckpt_every and self.step % a.ckpt_every == 0 and self.step < stop_step:
+                self.wall = wall0 + time.time() - t_start
+                for f in files.values():
+                    f.flush()
+                self.save(latest)
             if s % 10 == 0 or self.step == stop_step:
                 lv = float(loss)
                 if not math.isfinite(lv):
@@ -223,14 +245,16 @@ class Trainer:
                 now = time.time()
                 tps = (self.tokens - tok_last) / max(1e-9, now - t_last)
                 t_last, tok_last = now, self.tokens
-                wtrain.writerow([s, lv, float(gn), lr, self.tokens, self.flops, tps, now - t_start])
+                wtrain.writerow([s, lv, float(gn), lr, self.tokens, self.flops, tps, wall0 + now - t_start])
                 ftrain.flush()
                 if s % 100 == 0:
                     print(f"step {s}/{self.total_steps} loss {lv:.4f} lr {lr:.2e} tok/s {tps:.0f} "
                           f"alloc {self.model.allocation()}", flush=True)
         if self.step in self.save_steps:
             self.save(os.path.join(self.ckpt_dir, f"ckpt_{self.save_steps[self.step]}.pt"))
-        wall = time.time() - t_start
+        wall = wall0 + time.time() - t_start
+        if os.path.exists(latest):
+            os.remove(latest)
         final = self.evaluate(a.final_eval_tokens) if status == "ok" else float("nan")
         wval.writerow([self.step, self.tokens, self.flops, final, self.model.active_nonembedding_params()])
         for f in (ftrain, fval, fev):

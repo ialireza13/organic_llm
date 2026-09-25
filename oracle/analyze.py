@@ -37,7 +37,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default="results/oracle")
     ap.add_argument("--ckpts", default="0.3,0.6")
-    ap.add_argument("--prefix", default="oracle", help="oracle file prefix, e.g. oracle or oracle600")
+    ap.add_argument("--prefix", default="oracle", help="oracle file prefix, e.g. oracle or oracle400")
+    ap.add_argument("--at", default=None, help="use the intermediate val loss at this many steps (val_at)")
     a = ap.parse_args()
     out = {"per_ckpt": {}, "pooled": {}}
     pooled_oracle, pooled_metric = [], {}
@@ -46,6 +47,8 @@ def main():
     for ck in a.ckpts.split(","):
         seeds = sorted(glob.glob(os.path.join(a.dir, f"{a.prefix}_{ck}_seed*.json")))
         runs = [json.load(open(f))["runs"] for f in seeds]
+        if a.at:
+            runs = [{c: {"val_loss": v["val_at"][a.at]} for c, v in r.items()} for r in runs]
         cands = [c for c in runs[0] if c != "control" and all(c in r for r in runs)]
         per_seed = []
         for r in runs:
@@ -98,7 +101,7 @@ def main():
     # ranking for Stage-2 selection: pooled Spearman over all candidates (metrics with head scores only)
     elig = {k: v["spearman_all"] for k, v in out["pooled"].items() if not np.isnan(v["spearman_all"])}
     out["ranking"] = sorted(elig, key=lambda k: -elig[k])
-    json.dump(out, open(os.path.join(a.dir, f"stage1_summary_{a.prefix}.json"), "w"), indent=1)
+    json.dump(out, open(os.path.join(a.dir, f"stage1_summary_{a.prefix}{'_at' + a.at if a.at else ''}.json"), "w"), indent=1)
     # markdown table
     cks = list(out["per_ckpt"])
     hdr = "| metric | " + " | ".join(f"ρ all @{c}" for c in cks) + " | ρ all pooled | ρ FFN pooled | ρ heads pooled | self-rel. | s/eval |"
@@ -117,8 +120,8 @@ def main():
                  f" | 0 ± {rb['n24']['std']:.2f} (p95 {rb['n24']['p95']:.2f}) | 0 ± {rb['n12_ffn_pooled']['std']:.2f} | | | 0 |")
     lines.append("")
     lines.append("Oracle seed-to-seed reliability (Spearman / Pearson of per-param oracle values): " + ", ".join(
-        f"@{c}: {out['per_ckpt'][c]['seed_reliability_spearman']:+.2f} / {out['per_ckpt'][c]['seed_reliability_pearson']:+.2f}" for c in cks))
-    open(os.path.join(a.dir, f"stage1_table_{a.prefix}.md"), "w").write("\n".join(lines) + "\n")
+        f"@{c}: {out['per_ckpt'][c]['seed_reliability_spearman'] or float('nan'):+.2f} / {out['per_ckpt'][c]['seed_reliability_pearson'] or float('nan'):+.2f}" for c in cks))
+    open(os.path.join(a.dir, f"stage1_table_{a.prefix}{'_at' + a.at if a.at else ''}.md"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines))
     print("ranking:", out["ranking"])
 

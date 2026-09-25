@@ -67,3 +67,29 @@ def test_metric_returns_finite_scores(tmp_path, name):
         assert u in sc and math.isfinite(sc[u]), (u, sc)
     # metric computation must not change the function or leave gradients behind
     assert all(p.grad is None for p in t.model.parameters())
+
+
+def test_resume_after_crash(tmp_path):
+    torch.backends.cuda.matmul.allow_tf32 = False
+    extra = ("--ckpt_every", "5", "--final_eval_tokens", "65536", "--eval_tokens", "65536", "--eval_every", "4")
+    t = make_trainer(tmp_path, "r", extra)
+    orig = t.train_step
+
+    def boom(step):
+        if step == 12:
+            raise RuntimeError("simulated crash")
+        return orig(step)
+
+    t.train_step = boom
+    with pytest.raises(RuntimeError):
+        t.run()
+    assert os.path.exists(tmp_path / "runs" / "r" / "ckpt_latest.pt")
+    t2 = make_trainer(tmp_path, "r", extra)
+    summ = t2.run()
+    assert summ["status"] == "ok" and summ["steps"] == t2.total_steps
+    import csv as _csv
+    steps = [int(r["step"]) for r in _csv.DictReader(open(tmp_path / "res" / "r" / "train_log.csv"))]
+    assert steps == sorted(set(steps)), steps  # no duplicated rows after resume
+    ev = list(_csv.DictReader(open(tmp_path / "res" / "r" / "growth_events.csv")))
+    assert len(ev) == len(t2.ctl.events)
+    assert not os.path.exists(tmp_path / "runs" / "r" / "ckpt_latest.pt")
