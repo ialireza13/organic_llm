@@ -1,5 +1,7 @@
 # STATUS
 
+**Current state (07:50 EDT): DONE.** All planned runs finished; REPORT.md written and committed. No GPU jobs are running on server1 (0 GPU processes, no tmux sessions). Checkpoints/logs remain server-side in `~/organic-growth/runs/` (not synced); small results are in `results/`.
+
 **Start time:** 2026-09-25 00:44 EDT (04:44 UTC). **Hard deadline:** 2026-09-25 10:44 EDT.
 
 | Deadline | Milestone |
@@ -37,3 +39,5 @@
 - 04:55 S progress: M1b 3 seeds, M6 3 seeds, e' 2 seeds done; seed 2 b/c/d/f and −M3 ×3 running/pending; M next.
 - 05:45 All protocol S runs done (3 seeds; (e) 2 seeds) + exploratory −M3 ×3 + (e′) ×3. M running (scratch, uniform, M1b first; then M6, random, −M3, e). Seed 3 for M6/uniform/e′ queued behind M.
 - 06:35 M results so far (1 seed): scratch 3.9767, uniform 3.9853, M1b 3.9991, M6 3.9986. Running: M random, M −M3, M (e), S seed 3 (M6, uniform, e′).
+- 07:20 Queue empty: M arms (7) and S seed-3 runs done. Isolated throughput benchmark (idle GPU): S scratch 0.99M tok/s, S growth (2× prealloc) 0.79M, M scratch 0.51M, M growth 0.38M.
+- 07:50 Final analysis (results/stage2_tables.md), plots, REPORT.md committed. GPU idle.

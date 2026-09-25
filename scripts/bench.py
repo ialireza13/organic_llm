@@ -9,7 +9,7 @@ from train import Trainer, get_args
 
 
 def bench(scale, arm, steps=40, warm=15):
-    t = Trainer(get_args(["--scale", scale, "--arm", arm, "--run_name", f"bench_{scale}_{arm}", "--micro", "24",
+    t = Trainer(get_args(["--scale", scale, "--arm", arm, "--run_name", f"bench_{scale}_{arm}", "--micro", "24" if scale == "S" else "16",
                           "--results_dir", "runs/bench", "--runs_dir", "runs/bench"]))
     for s in range(warm):
         t.model.update_masks(s)
