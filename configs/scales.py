@@ -5,7 +5,8 @@ from model.gpt import GPTConfig
 SCALES = {
     # name: layers, d_model, target heads/layer, target ffn/layer, token budget, batch (seqs), micro batch
     "S": dict(n_layer=6, d_model=384, heads=6, ffn=1536, tokens=250_000_000, batch=96, micro=48),
-    "M": dict(n_layer=8, d_model=640, heads=10, ffn=2560, tokens=800_000_000, batch=288, micro=48),
+    # M: token budget cut from 800M to 300M (time; see DECISIONS.md), batch 128 x 1024 -> 2288 steps
+    "M": dict(n_layer=8, d_model=640, heads=10, ffn=2560, tokens=300_000_000, batch=128, micro=16),
     # tiny config for tests
     "T": dict(n_layer=2, d_model=128, heads=2, ffn=512, tokens=2_000_000, batch=8, micro=8),
 }

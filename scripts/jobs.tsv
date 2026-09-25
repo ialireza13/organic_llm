@@ -24,3 +24,10 @@ S_openelm_s2	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_C
 S_grow_metric_m3neg_s0	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 24 --lr 4e-3 --scale S --arm grow_metric --metric m3neg --seed 0
 S_grow_metric_m3neg_s1	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 24 --lr 4e-3 --scale S --arm grow_metric --metric m3neg --seed 1
 S_grow_metric_m3neg_s2	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 24 --lr 4e-3 --scale S --arm grow_metric --metric m3neg --seed 2
+M_scratch_s0	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 16 --lr 2.5e-3 --scale M --arm scratch --seed 0
+M_grow_uniform_s0	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 16 --lr 2.5e-3 --scale M --arm grow_uniform --seed 0
+M_grow_metric_m1b_s0	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 16 --lr 2.5e-3 --scale M --arm grow_metric --seed 0 --metric m1b
+M_grow_metric_m6_s0	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 16 --lr 2.5e-3 --scale M --arm grow_metric --seed 0 --metric m6
+M_grow_random_s0	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 16 --lr 2.5e-3 --scale M --arm grow_random --seed 0
+M_grow_metric_m3neg_s0	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 16 --lr 2.5e-3 --scale M --arm grow_metric --seed 0 --metric m3neg
+M_scratch_flops_s0	source .venv/bin/activate && OMP_NUM_THREADS=4 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python train.py --micro 16 --lr 2.5e-3 --scale M --arm scratch_flops --seed 0 --match_growth_flops

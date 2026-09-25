@@ -31,3 +31,4 @@
 - 02:58 Added periodic resume checkpoints (every 200 steps, `runs/<name>/ckpt_latest.pt`) + auto-resume to train.py (test added, 14/14 tests pass). Relaunched tmux `oq4` (oracle-400) and `queue` (Stage 2, 2 hold slots).
 - 03:30 **Stage 1 done** (400-step oracle). Oracle seed reliability: Spearman +0.20 @30%, +0.64 @60% (n=12). No metric positively correlated with the oracle (pooled ρ: M1b −0.19, M6 −0.23, M7 −0.28, M5 −0.31, M1 −0.35, M3 −0.64; M2 FFN-only −0.40). Selected M1b + M6 per protocol. Tables: results/oracle/stage1_table_oracle400*.md.
 - 03:32 Released Stage 2 throttle; metric arms (M1b, M6) launched for seed 0. Exploratory −M3 arm (3 seeds) appended at the end of the queue.
+- 03:45 M queued (300M tokens, 1 seed, 7 arms, lr 2.5e-3); M smoke test (40 steps, M1b growth) ok, ~16 GB/job.

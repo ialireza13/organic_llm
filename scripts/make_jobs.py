@@ -22,6 +22,14 @@ for seed in (0, 1, 2):
 for m in sys.argv[4:]:
     for seed in (0, 1, 2):
         jobs.append((f"S_grow_metric_{m}_s{seed}", f"{C} --scale S --arm grow_metric --metric {m} --seed {seed}"))
+# M scale (1 seed, reduced tokens, LR scaled by 1/width from the S optimum), queued after all S runs
+CM = C.replace("--micro 24 --lr " + lr, "--micro 16 --lr 2.5e-3")
+m_arms = [("scratch", ""), ("grow_uniform", ""), ("grow_metric", metrics[0]), ("grow_metric", metrics[1]),
+          ("grow_random", ""), ("grow_metric", "m3neg"), ("scratch_flops", "")]
+for arm, m in m_arms:
+    extra = (f" --metric {m}" if m else "") + (" --match_growth_flops" if arm == "scratch_flops" else "")
+    name = f"M_{arm}{'_' + m if m else ''}_s0"
+    jobs.append((name, f"{CM} --scale M --arm {arm} --seed 0{extra}"))
 with open("scripts/jobs.tsv", "w") as f:
     for n, c in jobs:
         f.write(f"{n}\t{c}\n")
