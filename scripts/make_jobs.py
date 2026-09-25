@@ -19,6 +19,8 @@ for seed in (0, 1, 2):
     for arm in ("grow_random", "grow_uniform", "scratch", "scratch_flops", "openelm"):
         if arm == "scratch" and seed == 0:
             continue  # = LR-sweep run at the chosen LR (copied)
+        if arm == "scratch_flops" and seed == 2:
+            continue  # superseded by the warmup-controlled (e') arm; 2 seeds suffice to show the artifact
         extra = " --match_growth_flops" if arm == "scratch_flops" else ""
         jobs.append((f"S_{arm}_s{seed}", f"{C} --scale S --arm {arm} --seed {seed}{extra}"))
 # exploratory arm (a3), queued after all protocol S runs
