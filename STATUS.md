@@ -36,3 +36,4 @@
 - 04:20 Diagnostic (e') at step 702: val 4.936 vs (e) 5.183 vs (d) ≈4.95 → the (e) deficit is a warmup/LR-edge artifact; (e') is the valid matched-FLOPs baseline. Added (e') seed 2.
 - 04:55 S progress: M1b 3 seeds, M6 3 seeds, e' 2 seeds done; seed 2 b/c/d/f and −M3 ×3 running/pending; M next.
 - 05:45 All protocol S runs done (3 seeds; (e) 2 seeds) + exploratory −M3 ×3 + (e′) ×3. M running (scratch, uniform, M1b first; then M6, random, −M3, e). Seed 3 for M6/uniform/e′ queued behind M.
+- 06:35 M results so far (1 seed): scratch 3.9767, uniform 3.9853, M1b 3.9991, M6 3.9986. Running: M random, M −M3, M (e), S seed 3 (M6, uniform, e′).
