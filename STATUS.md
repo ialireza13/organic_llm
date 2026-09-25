@@ -29,3 +29,5 @@
 - 02:34–02:41 SSH to server1 unreachable (network); retried with backoff (30s…240s), recovered 02:41. Server jobs unaffected (tmux).
 - **~02:38 server container restarted** (uptime reset during the network outage) → every running job was killed: Stage 2 S_grow_random_s1 (was at step 2400/2543), S_grow_uniform_s1, S_scratch_s1, S_scratch_flops_s1, and the 4 oracle-400 processes (4/13 candidates each were saved; the oracle resumes from its JSON). Files on disk survived.
 - 02:58 Added periodic resume checkpoints (every 200 steps, `runs/<name>/ckpt_latest.pt`) + auto-resume to train.py (test added, 14/14 tests pass). Relaunched tmux `oq4` (oracle-400) and `queue` (Stage 2, 2 hold slots).
+- 03:30 **Stage 1 done** (400-step oracle). Oracle seed reliability: Spearman +0.20 @30%, +0.64 @60% (n=12). No metric positively correlated with the oracle (pooled ρ: M1b −0.19, M6 −0.23, M7 −0.28, M5 −0.31, M1 −0.35, M3 −0.64; M2 FFN-only −0.40). Selected M1b + M6 per protocol. Tables: results/oracle/stage1_table_oracle400*.md.
+- 03:32 Released Stage 2 throttle; metric arms (M1b, M6) launched for seed 0. Exploratory −M3 arm (3 seeds) appended at the end of the queue.

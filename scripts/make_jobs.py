@@ -18,6 +18,10 @@ for seed in (0, 1, 2):
             continue  # = LR-sweep run at the chosen LR (copied)
         extra = " --match_growth_flops" if arm == "scratch_flops" else ""
         jobs.append((f"S_{arm}_s{seed}", f"{C} --scale S --arm {arm} --seed {seed}{extra}"))
+# exploratory arm (a3), queued after all protocol S runs
+for m in sys.argv[4:]:
+    for seed in (0, 1, 2):
+        jobs.append((f"S_grow_metric_{m}_s{seed}", f"{C} --scale S --arm grow_metric --metric {m} --seed {seed}"))
 with open("scripts/jobs.tsv", "w") as f:
     for n, c in jobs:
         f.write(f"{n}\t{c}\n")
