@@ -7,13 +7,23 @@ You are working **fully autonomously overnight**. The researcher (Alireza) is as
 - **Never ask questions and never wait for input.** Nobody will answer until morning. When something is ambiguous, pick the most reasonable option, record it in `DECISIONS.md` (one line: what, why, alternative), and keep going.
 - **Never stop early.** If a component fails and you cannot fix it within ~30 minutes, drop or simplify it, log it in `DECISIONS.md`, and continue with the rest. A partial but honest result beats no result.
 - **Keep `STATUS.md` current** (timestamped, updated at least every phase and every ~60 min): current phase, what is running, what finished, what failed. After any context compaction, re-read `STATUS.md`, `DECISIONS.md` and `PLAN.md` before continuing.
-- **Long jobs never run in the foreground.** Launch training in `tmux` sessions (or `nohup`) with logs to files, then poll with `sleep 300`–`sleep 540` plus `tail`/`nvidia-smi`. Your own bash calls have time limits; jobs must survive without you.
+- **Long jobs never run in the foreground.** Launch training on the server in detached `tmux` sessions with logs to files, then poll with `sleep 300`–`sleep 540` plus `ssh server1 'tail ...; nvidia-smi'`. Your own bash calls have time limits; jobs must survive without you, and must survive a dropped SSH connection.
 - **Commit to git** after every working milestone (local repo only; do not push anywhere).
-- **Safety:** work only inside `~/organic-growth` (plus `~/.cache` for downloads). No `sudo`, no deleting anything outside the project, no opening ports, no sending data anywhere. Use a Python venv. Keep disk usage under 80%.
+- **Safety:** locally, work only inside this project directory. On the server, work only inside `~/organic-growth` (plus `~/.cache` for downloads). No `sudo`, no deleting anything outside the project on either machine, no opening ports, no sending data anywhere except between this laptop and server1. Use a Python venv on the server. Keep server disk usage under 80%.
 
-## 1. Environment
+## 1. Environment and workflow (laptop + server)
 
-All work happens on `server1` (single H100 NVL 94 GB, 28 CPU cores, 185 GB RAM). Check `hostname` first: if you are not on server1, run every command via `ssh server1 '...'` and launch long jobs inside tmux on server1.
+You are running on the researcher's **laptop**. The **code lives here**, in this directory (the git repo). All GPU work runs on `server1` (single H100 NVL 94 GB, 28 CPU cores, 185 GB RAM), reached with `ssh server1`.
+
+- **Edit code only locally.** Never edit code files on the server.
+- **Sync code to the server before every test or launch:**
+  `rsync -az --delete --exclude .git --exclude .venv --exclude data/ --exclude runs/ --exclude results/ ./ server1:~/organic-growth/`
+- **Server-only, never synced back:** the venv, `data/` (tokenized shards), `runs/` (checkpoints, full logs).
+- **Results come back to the laptop:** each run writes small artifacts (metrics CSVs, growth-event logs, final summaries, plots) to `~/organic-growth/results/` on the server. Pull them with `rsync -az server1:~/organic-growth/results/ ./results/` after each phase and before writing the report, then commit them.
+- **Remote commands** are non-interactive: `ssh server1 'cd ~/organic-growth && source .venv/bin/activate && ...'`.
+- **Long jobs:** `ssh server1 "cd ~/organic-growth && tmux new -d -s <name> 'source .venv/bin/activate && <cmd> > runs/<name>.log 2>&1'"`. Keep a launch queue script on the server (e.g. `scripts/queue.sh`) so a batch of runs proceeds even if the laptop loses connection.
+- **If SSH fails,** retry with backoff (30s, 1m, 2m, ... up to 30 minutes total), log it in `STATUS.md`, and resume. Jobs already running on the server continue; check their state before relaunching anything, so no run is duplicated.
+- `STATUS.md`, `DECISIONS.md` and `REPORT.md` live locally in the repo.
 
 Record the start time in `STATUS.md`. **Hard deadline: start + 10 hours.** Time boxes:
 
@@ -28,9 +38,9 @@ If a phase overruns, cut scope (fewer seeds, drop the M-scale, drop expensive me
 
 ## 2. Setup
 
-1. `nvidia-smi` (confirm full GPU, ~94 GB, no MIG), `df -h`, `nproc`, `free -g`, Python/CUDA versions. Log in `STATUS.md`.
-2. Create `~/organic-growth`, git init, venv; install recent `torch`, `numpy`, `tiktoken`, `datasets`, `scipy`, `pandas`, `matplotlib`, `pytest`.
-3. **Data:** FineWeb `sample-10BT` (HF `HuggingFaceFW/fineweb`), GPT-2 tokenizer via tiktoken, multiprocessing across the CPU cores, written as uint16 `.bin` shards (nanoGPT style). Tokenize ~1.5B train tokens + a fixed ~10M-token validation split. Fallbacks in order: FineWeb-Edu sample, OpenWebText. Log what you used.
+1. Check SSH works (`ssh server1 hostname`). On the server: `nvidia-smi` (confirm full GPU, ~94 GB, no MIG), `df -h`, `nproc`, `free -g`, Python/CUDA versions. Log in `STATUS.md`.
+2. Locally: git init this directory (if not already a repo), add a `.gitignore` for `data/`, `runs/`, `.venv/`, checkpoints. On the server: create `~/organic-growth` and a venv; install recent `torch`, `numpy`, `tiktoken`, `datasets`, `scipy`, `pandas`, `matplotlib`, `pytest`. Save the exact package versions to `requirements.txt` locally.
+3. **Data (on the server):** FineWeb `sample-10BT` (HF `HuggingFaceFW/fineweb`), GPT-2 tokenizer via tiktoken, multiprocessing across the CPU cores, written as uint16 `.bin` shards (nanoGPT style). Tokenize ~1.5B train tokens + a fixed ~10M-token validation split. Fallbacks in order: FineWeb-Edu sample, OpenWebText. Log what you used.
 
 ## 3. Scope decisions already made (do not revisit)
 
@@ -55,7 +65,7 @@ If a phase overruns, cut scope (fewer seeds, drop the M-scale, drop expensive me
 
 ## 5. Required tests (must pass before any experiment)
 
-Write them in `tests/`, run with pytest, and put the results in `STATUS.md`:
+Write them in `tests/` locally, sync, run them on the server with pytest (GPU tests need the server), and put the results in `STATUS.md`:
 
 1. Function preservation: logits identical (atol ~1e-5, fp32) before and after every growth operation.
 2. New units receive non-zero gradients once their mask ramps above 0.
@@ -102,7 +112,7 @@ Log per run: validation loss curve, final validation loss, cumulative active FLO
 
 ## 9. Morning deliverable: `REPORT.md`
 
-Write it concisely, lead with conclusions, and commit it. It must contain:
+Pull all results from the server first, then write the report locally, lead with conclusions, and commit it. It must contain:
 
 1. **TL;DR** (≤5 lines): which metrics look worth keeping, which to drop, and whether metric-driven growth beat random and uniform growth beyond seed noise.
 2. What was built, and test results.
