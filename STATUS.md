@@ -35,3 +35,4 @@
 - 04:10 Interim: arm (e) matched-FLOPs scratch is 0.08 worse than (d) in both seeds, from the first ~200 steps (grad norm 0.35 vs 0.25); only difference is warmup 93 vs 101 steps + 8% fewer steps → LR-edge sensitivity. Queued diagnostic (e') with warmup fixed at 101 steps, seeds 0–1, at the front of the queue.
 - 04:20 Diagnostic (e') at step 702: val 4.936 vs (e) 5.183 vs (d) ≈4.95 → the (e) deficit is a warmup/LR-edge artifact; (e') is the valid matched-FLOPs baseline. Added (e') seed 2.
 - 04:55 S progress: M1b 3 seeds, M6 3 seeds, e' 2 seeds done; seed 2 b/c/d/f and −M3 ×3 running/pending; M next.
+- 05:45 All protocol S runs done (3 seeds; (e) 2 seeds) + exploratory −M3 ×3 + (e′) ×3. M running (scratch, uniform, M1b first; then M6, random, −M3, e). Seed 3 for M6/uniform/e′ queued behind M.

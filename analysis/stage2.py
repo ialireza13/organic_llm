@@ -79,12 +79,18 @@ def plots(rows, scale, out):
     for xcol, fname in (("tokens", "val_vs_tokens"), ("flops", "val_vs_flops")):
         fig, axes = plt.subplots(1, 2, figsize=(13, 4.8))
         for i, k in enumerate(keys):
+            dfs = []
             for r in [r for r in rs if r["key"] == k]:
                 df = pd.read_csv(os.path.join(r["dir"], "val_log.csv"))
-                df = df[df.step > 0]
+                df = df[df.step > 0].drop_duplicates("step", keep="last").set_index("step")
+                dfs.append(df)
                 for ax in axes:
-                    ax.plot(df[xcol], df.val_loss, color=cmap(i), alpha=0.8, lw=1.2,
-                            label=arm_label(k) if r["seed"] == min(x["seed"] for x in rs if x["key"] == k) else None)
+                    ax.plot(df[xcol], df.val_loss, color=cmap(i), alpha=0.25, lw=0.8)
+            common = sorted(set.intersection(*[set(d.index) for d in dfs]))
+            mx = np.mean([d.loc[common, xcol].values for d in dfs], 0)
+            my = np.mean([d.loc[common, "val_loss"].values for d in dfs], 0)
+            for ax in axes:
+                ax.plot(mx, my, color=cmap(i), lw=1.8, label=f"{arm_label(k)} (n={len(dfs)})")
         axes[0].set_ylim(None, 5.0)
         # zoom on the end of training
         allv = [pd.read_csv(os.path.join(r["dir"], "val_log.csv")).val_loss.iloc[-1] for r in rs]
