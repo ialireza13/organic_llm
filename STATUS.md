@@ -42,3 +42,4 @@
 - 07:20 Queue empty: M arms (7) and S seed-3 runs done. Isolated throughput benchmark (idle GPU): S scratch 0.99M tok/s, S growth (2× prealloc) 0.79M, M scratch 0.51M, M growth 0.38M.
 - 07:25 Final analysis (results/stage2_tables.md), plots, REPORT.md committed. GPU idle.
 - 08:46 Post-report extra seeds done (S seeds 4–5 for M6/uniform; M seed 1 for d, c, e, M6). REPORT §8 appended; TL;DR carries a pointer to the update.
+- 09:36 Follow-up M800 test launched (tmux `m800`, 9 jobs, 3 parallel, results/m800/). Expected ~4 h.

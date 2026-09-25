@@ -34,3 +34,10 @@ One line each: what — why — alternative.
 - Dropped arm (e) seed 2 (superseded by (e′)); (e) reported with 2 seeds.
 - Seed 3 added for M6, uniform growth and (e′) (closest S comparison), queued after M to use spare slots.
 - M matched-FLOPs run (e) uses warmup_frac 0.0446 → 91 warmup steps, the same absolute warmup as the 2288-step M runs (lesson from S (e) vs (e′)).
+
+## Follow-up: full-budget M test (M800), launched 2026-09-25 09:36 EDT
+- Question: does uniform growth beat a from-scratch target-size model at matched FLOPs at the full M budget (800M tokens)? 3 seeds; arms: uniform growth, scratch at matched FLOPs, scratch at the same tokens (reference). No metric arms (none earned a place overnight).
+- Batch 128 × 1024 (6103 steps) and lr 2.5e-3, kept from the overnight M runs so only the token budget changes — alternative: the original batch 288 (would need an LR re-check).
+- Same absolute warmup (244 steps) for every arm via new `--warmup_steps` — avoids the (e) warmup artifact found overnight.
+- Uniform growth pre-allocates exactly the target width (new `--prealloc 1.0`): it never exceeds the target per layer, so its per-token cost equals a target-size model and wall-clock comparisons are fair — alternative: 2× as overnight (20–27% slower).
+- Fixed: `--match_growth_flops` now matches the growth-run FLOPs at the `--tokens` budget (it previously always used the preset budget; overnight runs never combined the two, so no earlier result is affected).

@@ -31,6 +31,9 @@ def get_args(argv=None):
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--warmup_frac", type=float, default=0.04)
+    ap.add_argument("--warmup_steps", type=int, default=None, help="absolute warmup steps (overrides --warmup_frac)")
+    ap.add_argument("--prealloc", type=float, default=2.0,
+                    help="growth arms: pre-allocated width per layer as a multiple of the target (1.0 is enough for grow_uniform)")
     ap.add_argument("--min_lr_frac", type=float, default=0.1)
     ap.add_argument("--wd", type=float, default=0.1)
     ap.add_argument("--tokens", type=float, default=None, help="override token budget")
@@ -91,7 +94,7 @@ class Trainer:
         tokens = args.tokens or sc["tokens"]
         full_steps = int(tokens // self.tokens_per_step)
         if args.match_growth_flops:
-            gf = growth_arm_flops(args.scale, int(sc["tokens"] // self.tokens_per_step), self.tokens_per_step)
+            gf = growth_arm_flops(args.scale, int(tokens // self.tokens_per_step), self.tokens_per_step)
             cfg_t = model_config(args.scale, "scratch", 1)
             d, hd, T, V, L = cfg_t.d_model, 64, 1024, cfg_t.vocab_size, cfg_t.n_layer
             fpt = 6 * (sum(4 * d * hd * h + 2 * d * f for h, f in zip(cfg_t.init_heads, cfg_t.init_ffn)) + d * V) \
@@ -100,13 +103,13 @@ class Trainer:
             self.matched_flops_target = gf
         self.total_steps = full_steps
         self.ramp = max(1, int(round(args.ramp_frac * full_steps)))
-        self.cfg = model_config(args.scale, args.arm, self.ramp)
+        self.cfg = model_config(args.scale, args.arm, self.ramp, prealloc=args.prealloc)
         self.model = GPT(self.cfg).cuda()
         self.opt = GrowableAdamW(self.model, lr=args.lr, weight_decay=args.wd)
         self.cmodel = self.model if args.no_compile else torch.compile(self.model)
         self.data = TrainData(args.data_dir, 1024, self.B, data_seed=args.seed)
         self.val = ValData(args.data_dir, 1024)
-        self.warmup = max(1, int(args.warmup_frac * full_steps))
+        self.warmup = args.warmup_steps or max(1, int(args.warmup_frac * full_steps))
         policy = {"grow_uniform": "uniform", "grow_random": "random", "grow_metric": "metric"}.get(args.arm, "none")
         add_h, add_c = growth_totals(args.scale)
         mfn = METRICS[args.metric] if (policy == "metric") else None

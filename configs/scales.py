@@ -28,14 +28,15 @@ def openelm_widths(L, target, unit, lo=0.5, hi=1.5):
     return [x * unit for x in w]
 
 
-def model_config(scale, arm, ramp_steps):
+def model_config(scale, arm, ramp_steps, prealloc=2.0):
     s = SCALES[scale]
     L, H, Fw = s["n_layer"], s["heads"], s["ffn"]
     kw = dict(n_layer=L, d_model=s["d_model"], ramp_steps=ramp_steps)
     if arm in ("scratch", "scratch_flops"):
         kw.update(max_heads=[H] * L, max_ffn=[Fw] * L, init_heads=[H] * L, init_ffn=[Fw] * L)
     elif arm in ("grow_uniform", "grow_random", "grow_metric"):
-        kw.update(max_heads=[2 * H] * L, max_ffn=[2 * Fw] * L, init_heads=[H // 2] * L, init_ffn=[Fw // 2] * L)
+        mh, mf = int(round(prealloc * H)), int(round(prealloc * Fw / FFN_CHUNK)) * FFN_CHUNK
+        kw.update(max_heads=[mh] * L, max_ffn=[mf] * L, init_heads=[H // 2] * L, init_ffn=[Fw // 2] * L)
     elif arm == "base_half":  # oracle base: 50% width + room for exactly one more head and one FFN chunk
         kw.update(max_heads=[H // 2 + 1] * L, max_ffn=[Fw // 2 + FFN_CHUNK] * L, init_heads=[H // 2] * L,
                   init_ffn=[Fw // 2] * L)
