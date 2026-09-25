@@ -4,3 +4,21 @@ One line each: what — why — alternative.
 
 - Server shows 224 CPUs (shared host); use ≤32 worker processes for tokenization — stay polite on a shared box — could use all 224.
 - HF_HOME set to `~/.cache/huggingface` for downloads — prompt restricts server writes to `~/organic-growth` + `~/.cache` (image default is /workspace/.hf_home) — use image default.
+- GPU is power-capped (370 W; SM clock drops to ~1080 MHz under load): aggregate throughput ~540k tok/s for S-size jobs regardless of concurrency beyond ~3 — run 4 concurrent jobs — more concurrency gives no extra throughput.
+- Tied input/output embeddings; GPT-2 vocab padded to 50304; no biases in linear layers; LayerNorm with bias; init N(0, 0.02), residual projections (O, W2) N(0, 0.02/sqrt(2L)) — nanoGPT defaults — untied embeddings.
+- AdamW (β=0.9/0.95, wd 0.1 on 2D weights, grad clip 1.0) implemented with a *per-element* step counter so grown units get exact moment reset *and* correct bias correction — torch AdamW has one step per tensor, which would give new units a ~3× oversized first update — use torch AdamW and accept it.
+- LR schedule: linear warmup 4% of steps, cosine to 10% of peak. Batch 96×1024 = 98,304 tokens/step at S (2543 steps for 250M tokens) — gives ~2.5k steps as requested.
+- FLOPs: 6·N_active_matmul (incl. tied LM head, excl. embedding lookup) + 12·Σ_l d_attn_l·T per token (PaLM convention, full attention); units count as active from their growth step. Metric computation is logged separately (seconds + tokens), not included in train_flops.
+- Growth-arm FLOPs are only 92% of the from-scratch target-size run at S (89% at M), because the 19M-param tied LM head is ~2/3 of per-token FLOPs at S → arm (e) gets 2346 steps instead of 2543.
+- Metric scores: extensive metrics (M1, M1b, M2, M3 = estimated loss decrease from one unit) divided by unit params (FFN chunk 49,152; head 98,304 at S); intensive per-layer signals (M5 SNR, M6 saturation, M7 influence) are used as-is.
+- Growth allocation within an event (metric arms): greedy by score with D'Hondt diminishing returns (score/(1+units already added to that layer/type this event)), scores min-max scaled to [0.1, 1.1] first so every candidate stays possible — without diminishing returns all units of an event go to the single top layer — alternative: pure greedy or softmax.
+- Metric arms: per-event budget = 1/8 of total added params, type split decided by the metric; per-type totals capped so every arm ends at exactly 36 heads / 9216 FFN (S); last event adds whatever remains. Random/uniform arms use the even per-event split (2–3 heads + 9 chunks per event at S).
+- Metric schedule in Stage 2: evaluated every (event spacing / 3) steps from 2 evaluations before the first event, on 8×8×1024 = 64k held-out tokens (val tokens [8M,10M), rotating), EMA β=0.5.
+- M1 head variant: a fresh head (tiny random Q,K) attends ~uniformly, so its value input is the causal running mean of LN1 output; GELU linearized (factor 1/4) for FFN — this makes heads and FFN scores comparable in one formula.
+- M3 (TINY): existing-layer best update is taken over the output projection (W2 over active hidden units; O over active head outputs); new-unit fan-in uses whitened FFN input / causal-mean LN1 output; top-64 σ² as gain.
+- M2 (splitting): batched power iteration (30 its, shifted for λ_min) on 16k-token subsample; FFN only → Stage 1 ρ reported on FFN candidates only; if used in Stage 2, heads fall back to round-robin.
+- M5 uses AdamW moments (training gradients) by construction, not held-out batches.
+- Oracle base model uses prealloc of only +1 head / +64 FFN per layer (not 2×): masked inactive units don't change the function, and it makes the 52 oracle continuations ~2× cheaper.
+- Oracle eval uses 4M val tokens (≥2M required), the same fixed tokens for every candidate.
+- Scratch seed 0 at the chosen LR = the LR-sweep run (identical config except micro-batch 48 vs 24, i.e. grad-accumulation split) — saves one run.
+- Data order: seed k uses a permutation (seed k) of 1024-token windows; all arms with the same seed see the same batches → paired comparisons across arms.

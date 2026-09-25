@@ -1,0 +1,82 @@
+{
+ "args": {
+  "scale": "S",
+  "arm": "scratch",
+  "metric": null,
+  "seed": 0,
+  "lr": 0.008,
+  "warmup_frac": 0.04,
+  "min_lr_frac": 0.1,
+  "wd": 0.1,
+  "tokens": null,
+  "match_growth_flops": false,
+  "ramp_frac": 0.02,
+  "eval_every": null,
+  "eval_tokens": 2000000,
+  "final_eval_tokens": 8000000,
+  "metric_batches": 8,
+  "metric_bs": 8,
+  "save_at": "",
+  "stop_frac": 1.0,
+  "run_name": "S_lrsweep_8e-3",
+  "no_compile": false,
+  "data_dir": "data/fineweb",
+  "results_dir": "results/lrsweep",
+  "runs_dir": "runs"
+ },
+ "cfg": {
+  "n_layer": 6,
+  "d_model": 384,
+  "head_dim": 64,
+  "vocab_size": 50304,
+  "seq_len": 1024,
+  "max_heads": [
+   6,
+   6,
+   6,
+   6,
+   6,
+   6
+  ],
+  "max_ffn": [
+   1536,
+   1536,
+   1536,
+   1536,
+   1536,
+   1536
+  ],
+  "init_heads": [
+   6,
+   6,
+   6,
+   6,
+   6,
+   6
+  ],
+  "init_ffn": [
+   1536,
+   1536,
+   1536,
+   1536,
+   1536,
+   1536
+  ],
+  "ramp_steps": 51,
+  "tie_embeddings": true
+ },
+ "total_steps": 2543,
+ "tokens_per_step": 98304,
+ "event_steps": [
+  254,
+  436,
+  618,
+  799,
+  981,
+  1163,
+  1344,
+  1526
+ ],
+ "warmup": 101,
+ "ramp_steps": 51
+}

@@ -45,6 +45,7 @@ def get_args(argv=None):
     ap.add_argument("--stop_frac", type=float, default=1.0)
     ap.add_argument("--run_name", default=None)
     ap.add_argument("--no_compile", action="store_true")
+    ap.add_argument("--micro", type=int, default=None, help="micro-batch size (seqs); default from scale preset")
     ap.add_argument("--data_dir", default=DATA_DIR)
     ap.add_argument("--results_dir", default="results/runs")
     ap.add_argument("--runs_dir", default="runs")
@@ -83,7 +84,8 @@ class Trainer:
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
         sc = SCALES[args.scale]
-        self.B, self.micro = sc["batch"], sc["micro"]
+        self.B, self.micro = sc["batch"], (args.micro or sc["micro"])
+        assert self.B % self.micro == 0
         self.tokens_per_step = self.B * 1024
         tokens = args.tokens or sc["tokens"]
         full_steps = int(tokens // self.tokens_per_step)
@@ -143,7 +145,7 @@ class Trainer:
     @torch.no_grad()
     def evaluate(self, n_tokens):
         tot, n = 0.0, 0
-        for x, y in self.val.eval_batches(n_tokens, bs=32):
+        for x, y in self.val.eval_batches(n_tokens, bs=16):
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 _, loss = self.cmodel(x, y)
             tot += loss.float() * x.numel()
@@ -157,7 +159,9 @@ class Trainer:
                 "total_steps": self.total_steps}
 
     def save(self, path):
-        torch.save(self.state(), path)
+        tmp = str(path) + ".tmp"
+        torch.save(self.state(), tmp)
+        os.replace(tmp, path)
 
     def load(self, path):
         sd = torch.load(path, map_location="cuda", weights_only=False)

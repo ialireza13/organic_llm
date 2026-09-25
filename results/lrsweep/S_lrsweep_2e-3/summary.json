@@ -1,0 +1,37 @@
+{
+ "name": "S_lrsweep_2e-3",
+ "scale": "S",
+ "arm": "scratch",
+ "metric": null,
+ "seed": 0,
+ "lr": 0.002,
+ "status": "ok",
+ "steps": 2543,
+ "total_steps": 2543,
+ "tokens": 249987072,
+ "final_val_loss": 4.21558952331543,
+ "train_flops": 5.197555210125312e+16,
+ "metric_seconds": 0.0,
+ "metric_tokens": 0,
+ "wall_clock_s": 1171.124305009842,
+ "tokens_per_s": 213459.04182041474,
+ "allocation": {
+  "heads": [
+   6,
+   6,
+   6,
+   6,
+   6,
+   6
+  ],
+  "ffn": [
+   1536,
+   1536,
+   1536,
+   1536,
+   1536,
+   1536
+  ]
+ },
+ "active_nonemb_params": 10626816
+}
