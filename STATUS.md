@@ -33,3 +33,4 @@
 - 03:32 Released Stage 2 throttle; metric arms (M1b, M6) launched for seed 0. Exploratory −M3 arm (3 seeds) appended at the end of the queue.
 - 03:45 M queued (300M tokens, 1 seed, 7 arms, lr 2.5e-3); M smoke test (40 steps, M1b growth) ok, ~16 GB/job.
 - 04:10 Interim: arm (e) matched-FLOPs scratch is 0.08 worse than (d) in both seeds, from the first ~200 steps (grad norm 0.35 vs 0.25); only difference is warmup 93 vs 101 steps + 8% fewer steps → LR-edge sensitivity. Queued diagnostic (e') with warmup fixed at 101 steps, seeds 0–1, at the front of the queue.
+- 04:20 Diagnostic (e') at step 702: val 4.936 vs (e) 5.183 vs (d) ≈4.95 → the (e) deficit is a warmup/LR-edge artifact; (e') is the valid matched-FLOPs baseline. Added (e') seed 2.
