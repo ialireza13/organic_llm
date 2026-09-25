@@ -1,0 +1,37 @@
+{
+ "name": "S_oraclebase",
+ "scale": "S",
+ "arm": "base_half",
+ "metric": null,
+ "seed": 0,
+ "lr": 0.004,
+ "status": "ok",
+ "steps": 1526,
+ "total_steps": 2543,
+ "tokens": 150011904,
+ "final_val_loss": 4.439532279968262,
+ "train_flops": 2.428793053721395e+16,
+ "metric_seconds": 0.0,
+ "metric_tokens": 0,
+ "wall_clock_s": 704.0534784793854,
+ "tokens_per_s": 213068.90539621463,
+ "allocation": {
+  "heads": [
+   3,
+   3,
+   3,
+   3,
+   3,
+   3
+  ],
+  "ffn": [
+   768,
+   768,
+   768,
+   768,
+   768,
+   768
+  ]
+ },
+ "active_nonemb_params": 5318400
+}

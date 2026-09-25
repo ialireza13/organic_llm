@@ -37,13 +37,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default="results/oracle")
     ap.add_argument("--ckpts", default="0.3,0.6")
+    ap.add_argument("--prefix", default="oracle", help="oracle file prefix, e.g. oracle or oracle600")
     a = ap.parse_args()
     out = {"per_ckpt": {}, "pooled": {}}
     pooled_oracle, pooled_metric = [], {}
     pooled_cands = []
     lines = []
     for ck in a.ckpts.split(","):
-        seeds = sorted(glob.glob(os.path.join(a.dir, f"oracle_{ck}_seed*.json")))
+        seeds = sorted(glob.glob(os.path.join(a.dir, f"{a.prefix}_{ck}_seed*.json")))
         runs = [json.load(open(f))["runs"] for f in seeds]
         cands = [c for c in runs[0] if c != "control" and all(c in r for r in runs)]
         per_seed = []
@@ -97,7 +98,7 @@ def main():
     # ranking for Stage-2 selection: pooled Spearman over all candidates (metrics with head scores only)
     elig = {k: v["spearman_all"] for k, v in out["pooled"].items() if not np.isnan(v["spearman_all"])}
     out["ranking"] = sorted(elig, key=lambda k: -elig[k])
-    json.dump(out, open(os.path.join(a.dir, "stage1_summary.json"), "w"), indent=1)
+    json.dump(out, open(os.path.join(a.dir, f"stage1_summary_{a.prefix}.json"), "w"), indent=1)
     # markdown table
     cks = list(out["per_ckpt"])
     hdr = "| metric | " + " | ".join(f"ρ all @{c}" for c in cks) + " | ρ all pooled | ρ FFN pooled | ρ heads pooled | self-rel. | s/eval |"
@@ -117,7 +118,7 @@ def main():
     lines.append("")
     lines.append("Oracle seed-to-seed reliability (Spearman / Pearson of per-param oracle values): " + ", ".join(
         f"@{c}: {out['per_ckpt'][c]['seed_reliability_spearman']:+.2f} / {out['per_ckpt'][c]['seed_reliability_pearson']:+.2f}" for c in cks))
-    open(os.path.join(a.dir, "stage1_table.md"), "w").write("\n".join(lines) + "\n")
+    open(os.path.join(a.dir, f"stage1_table_{a.prefix}.md"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines))
     print("ranking:", out["ranking"])
 

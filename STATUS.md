@@ -21,3 +21,8 @@
 - 01:19 **LR sweep done** (S scratch, 250M tokens): lr 1e-3 → 4.331, 2e-3 → 4.216, **4e-3 → 4.176**, 8e-3 → 5.548 (unstable). Using **4e-3** for every arm. ~213k tok/s per job with 4 concurrent (GPU power-capped at 370 W).
 - 01:19 Stage 2 queue launched (tmux `queue`, `scripts/queue.py`, 4 parallel, stops launching at 09:14 EDT): oracle base run + S arms b,c,d,e,f × 3 seeds (seed-major order). Scratch seed 0 = sweep run at 4e-3.
 - 01:20 Oracle queue launched (tmux `oq`, 3 parallel): metrics + 2 oracle seeds at the 30% and 60% checkpoints, starting when checkpoints appear.
+- 01:31 Oracle base run (S, 50% width, lr 4e-3) done; ckpts at 30% (step 763) and 60% (step 1526).
+- 01:35 OOM incident: an ad-hoc check run I started on the GPU pushed memory over 93 GB and killed `metrics_0.3` and `oracle_0.3_seed0` (200-step). Re-queued.
+- 01:55 **200-step oracle unreliable**: at 60% every candidate is within ±2e-4 of control (identical controls differ by 0.9e-4); seed-to-seed Spearman 0.50 (n=12). At 30% values are ±7e-4 with mixed signs (noise). → per prompt, re-running the oracle **once** with 600 continuation steps (val also logged at 200/400) for all 4 (ckpt, seed) pairs (tmux `oq3`), micro-batch 12 to fit memory.
+- 02:05 Stage 2 seed 0 done for b, c, e, f (d = sweep run): see results/stage2_tables.md.
+- 02:06 600-step oracle too slow on shared GPU (~15 min/candidate → ~3 h); killed, relaunched at **400 steps** (val at 200 and 400), tmux `oq4`. Stage 2 queue throttled to 2 slots via hold jobs (`touch runs/resume_stage2` on server to release).
