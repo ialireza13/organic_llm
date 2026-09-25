@@ -1,0 +1,41 @@
+{
+ "name": "M800_scratch_s1",
+ "scale": "M",
+ "arm": "scratch",
+ "metric": null,
+ "seed": 1,
+ "lr": 0.0025,
+ "status": "ok",
+ "steps": 6103,
+ "total_steps": 6103,
+ "tokens": 799932416,
+ "final_val_loss": 3.675623655319214,
+ "train_flops": 3.935759638934323e+17,
+ "metric_seconds": 0.0,
+ "metric_tokens": 0,
+ "wall_clock_s": 5149.052928209305,
+ "tokens_per_s": 155355.25215084435,
+ "allocation": {
+  "heads": [
+   10,
+   10,
+   10,
+   10,
+   10,
+   10,
+   10,
+   10
+  ],
+  "ffn": [
+   2560,
+   2560,
+   2560,
+   2560,
+   2560,
+   2560,
+   2560,
+   2560
+  ]
+ },
+ "active_nonemb_params": 39343360
+}

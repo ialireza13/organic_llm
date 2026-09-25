@@ -1,6 +1,6 @@
 # STATUS
 
-**Current state (08:50 EDT): DONE.** REPORT.md (incl. §8 "Added after report") committed. No GPU jobs running on server1. Checkpoints/logs remain server-side in `~/organic-growth/runs/` (not synced); small results are in `results/`.
+**Current state (14:05 EDT): DONE.** Overnight report + §8 extra seeds + §9 M800 follow-up committed in REPORT.md. No GPU jobs running on server1.
 
 **Start time:** 2026-09-25 00:44 EDT (04:44 UTC). **Hard deadline:** 2026-09-25 10:44 EDT.
 
@@ -43,3 +43,4 @@
 - 07:25 Final analysis (results/stage2_tables.md), plots, REPORT.md committed. GPU idle.
 - 08:46 Post-report extra seeds done (S seeds 4–5 for M6/uniform; M seed 1 for d, c, e, M6). REPORT §8 appended; TL;DR carries a pointer to the update.
 - 09:36 Follow-up M800 test launched (tmux `m800`, 9 jobs, 3 parallel, results/m800/). Expected ~4 h.
+- 13:47 M800 follow-up done (9/9 runs ok). Uniform growth vs matched-FLOPs scratch: +0.041 ± 0.002 (3/3 seeds) → growth loses at full budget. REPORT §9 added.

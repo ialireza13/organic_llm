@@ -8,6 +8,7 @@
 - **Metric vs random/uniform growth: not beyond seed noise.** At S, M6 growth beat uniform growth by 0.009 ± 0.007 nats (4 seeds, p = 0.08) and random growth by 0.014 (p = 0.14). M1b, the formally top-ranked metric, was 0.010 *worse* than uniform. At M (1 seed, reduced budget), every metric arm was 0.013–0.017 worse than uniform growth.
 - **Growth itself doesn't pay at S:** uniform growth loses to a from-scratch target-size model trained at matched FLOPs (+0.0125 ± 0.007, 4 seeds, p = 0.04). At S, width growth saves only 8% of FLOPs because the tied LM head dominates. At M (1 seed, undertrained) growth beat the matched-FLOPs baseline by 0.05. Promising but unconfirmed.
 - **Update after extra seeds (see §8):** with 6 seeds, M6 vs uniform at S shrinks to −0.005 ± 0.010 (p = 0.31), i.e. noise. At M with 2 seeds, uniform growth beats the matched-FLOPs baseline in both seeds (−0.046 ± 0.007, p = 0.07).
+- **Follow-up, full M budget (§9): growth loses.** At 800M tokens, uniform growth is 0.041 worse than a from-scratch model with the same compute (3/3 seeds, p < 0.01). The overnight M "win" was a short-training effect. Training the full-size model from scratch is best in every properly matched comparison we ran.
 - Methodology warning: the first matched-FLOPs baseline was 0.06 worse purely because of its warmup, at an edge-of-stability LR. Comparisons of this size need a more stable LR and ≥4–5 seeds.
 
 ## 2. What was built, and test results
@@ -205,3 +206,30 @@ After the report was committed I used the remaining time for extra seeds on the 
 **Updated reading.**
 - **Metric-driven growth:** no evidence that any metric beats uniform growth at either scale. At S it is a wash over 6 seeds; at M, M6 is slightly worse in both seeds.
 - **Claim A:** scale-dependent. At S, growth loses to a FLOP-matched from-scratch model (4 seeds). At M it wins by ~0.046 nats in both seeds, while costing ~0.009 vs a from-scratch model that uses 12% more FLOPs. The M runs are short (300M tokens, ~8 tokens/param), so this may be a short-training effect. Confirming it at the full 800M-token M budget and at 124M is the most useful next experiment.
+
+## 9. Follow-up: full-budget M test (M800, 2026-09-25 09:36–13:47 EDT)
+
+**Question:** does uniform growth beat a from-scratch target-size model at matched compute when M is trained on its full 800M-token budget? At 300M tokens (1–2 seeds) it had won by ~0.046.
+
+**Setup.** 3 seeds × 3 arms; batch 128 (6103 steps); lr 2.5e-3; **the same 244-step warmup for every arm**. Uniform growth pre-allocates exactly the target width, so every arm costs the same per token. Growth schedule as before: start at 50% width, 8 events over 10–60% of training. Results: `results/m800/`.
+
+| Arm | final val loss (3 seeds) | per seed | train FLOPs | wall-clock |
+| --- | --- | --- | --- | --- |
+| Uniform growth | 3.7388 ± 0.0023 | 3.7364, 3.7391, 3.7410 | 3.52e17 | 84–86 min |
+| From scratch, matched FLOPs (5454 steps) | **3.6978 ± 0.0028** | 3.6947, 3.7002, 3.6984 | 3.52e17 | 77 min |
+| From scratch, same tokens (6103 steps) | **3.6739 ± 0.0020** | 3.6717, 3.6756, 3.6743 | 3.94e17 | 78–86 min |
+
+| Paired comparison | Δ mean ± sd | p | seeds |
+| --- | --- | --- | --- |
+| growth − scratch at matched FLOPs (**Claim A**) | **+0.0410 ± 0.0020** | < 0.01 | growth worse in 3/3 |
+| growth − scratch at same tokens | +0.0649 ± 0.0016 | < 0.01 | growth worse in 3/3 |
+
+**Why the 300M result flipped.** The half-width model learns faster at the very start. At 300M tokens it was up to 0.13 ahead early, and the full-width model only caught up halfway through the (short) run. At 800M the full-width model overtakes after ~10–15% of training and keeps a ~0.065 lead to the end ([loss vs FLOPs](results/m800/plots/M_val_vs_flops.png), [loss vs tokens](results/m800/plots/M_val_vs_tokens.png)).
+
+Growth itself behaves as intended: training loss and gradient norm are flat across every growth event, with no spikes. The cost comes from spending the first 10–60% of training with less capacity. Seed-to-seed spread is tiny here (sd ~0.002), so this conclusion is solid for this setup.
+
+**Updated conclusion.**
+- **Claim A fails at both scales once training is long enough.** Growth is worse than from-scratch training at the same compute: +0.0125 at S (4 seeds) and +0.041 at M with the full budget (3 seeds).
+- It isn't faster in wall-clock either. With static shapes, masked units are still computed, so the 11% FLOP saving never becomes a time saving.
+- Together with the overnight result that no metric beat uniform growth, **this recipe (start at 50% width, grow on 10–60% of training, random init for new units) offers no advantage over training the target model from scratch.**
+- **Recommendation:** do not spend the ~13 GPU-hours on the 124M version of this recipe. If growth is pursued further, the recipe must change, not the scale. Candidates: grow much earlier (finish by ~15% of training, i.e. inside the window where the small model is ahead); start closer to full size (e.g. 75%); or initialize new units from existing ones (Net2Net-style splitting or LiGO-style learned expansion) instead of at random, so they don't start from scratch. Test any such variant at M800 first, against matched-FLOPs scratch with the same warmup (~4 h for 3 seeds).
