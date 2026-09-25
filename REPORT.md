@@ -7,6 +7,7 @@
 - **Metrics:** no metric predicted the single-unit growth oracle. Pooled Spearman was −0.19 (M1b) to −0.64 (M3, significantly *anti*-correlated), and the oracle itself is only weakly reliable (seed-to-seed ρ 0.20 / 0.64). **Drop M1, M1b, M2, M5, M7 as location selectors.** Keep only **M6** and the **"−M3 / late-layer" allocation** as hypotheses.
 - **Metric vs random/uniform growth: not beyond seed noise.** At S, M6 growth beat uniform growth by 0.009 ± 0.007 nats (4 seeds, p = 0.08) and random growth by 0.014 (p = 0.14). M1b, the formally top-ranked metric, was 0.010 *worse* than uniform. At M (1 seed, reduced budget), every metric arm was 0.013–0.017 worse than uniform growth.
 - **Growth itself doesn't pay at S:** uniform growth loses to a from-scratch target-size model trained at matched FLOPs (+0.0125 ± 0.007, 4 seeds, p = 0.04). At S, width growth saves only 8% of FLOPs because the tied LM head dominates. At M (1 seed, undertrained) growth beat the matched-FLOPs baseline by 0.05. Promising but unconfirmed.
+- **Update after extra seeds (see §8):** with 6 seeds, M6 vs uniform at S shrinks to −0.005 ± 0.010 (p = 0.31), i.e. noise. At M with 2 seeds, uniform growth beats the matched-FLOPs baseline in both seeds (−0.046 ± 0.007, p = 0.07).
 - Methodology warning: the first matched-FLOPs baseline was 0.06 worse purely because of its warmup, at an edge-of-stability LR. Comparisons of this size need a more stable LR and ≥4–5 seeds.
 
 ## 2. What was built, and test results
@@ -178,3 +179,29 @@ Full log with alternatives: [DECISIONS.md](DECISIONS.md). Timeline and incidents
 3. **Settle Claim A before scaling up.** At S, growth does not beat a FLOP-matched scratch model (uniform growth is 0.0125 worse than (e′), 4/4 seeds). At M it did (0.05, 1 seed): rerun M with ≥3 seeds and the full 800M tokens first. Part of the reason: at S the tied LM head is ~2/3 of the FLOPs, so growing only width saves just 8%. At GPT-2 scale (124M/350M) the non-embedding share is larger, so the potential saving is too. Re-test there with a compact (gathered) implementation so wall-clock savings are real.
 4. **Use a more stable LR** (or LR re-warmup for new units) in the next round, e.g. 2e-3–3e-3 at S. At 4e-3, seed noise for full-width models (sd 0.028) swamps the effects we want to measure. Use ≥4–5 seeds for any comparison under 0.01 nats.
 5. **Separate "when" from "where".** Rerun the metric arms with the head/FFN split fixed per event (as in uniform/random), so the metric chooses only layers. Then The two better-than-random policies made very different choices: M6 piles heads and FFN into layer 0, while −M3 adds heads to layers 1–5 and FFN to the top layers. They also differed in *timing* (heads early). So "any consistent non-uniform allocation, or early heads, beats random" is as plausible as "the metric matters". A fixed-allocation control (e.g. the final −M3 or M6 allocation, trained from scratch) would separate "growth path" from "final shape".
+
+## 8. Added after report (extra seeds, 07:28–08:46 EDT)
+
+After the report was committed I used the remaining time for extra seeds on the closest or most decision-relevant comparisons: S seeds 4–5 for M6 and uniform growth, and M seed 1 for scratch, uniform growth, matched-FLOPs scratch (e) and M6. All finished; tables and plots in `results/` have been regenerated.
+
+**S, M6 vs uniform growth (6 seeds):** M6 4.1966 ± 0.0065, uniform 4.2012 ± 0.0071. Paired Δ = **−0.0046 ± 0.0099, p = 0.31** (per seed: −0.018, −0.011, 0.000, −0.009, +0.010, 0.000). The 4-seed result (−0.009, p = 0.08) does not hold up: **M6 is not distinguishable from uniform growth.**
+
+**M (now 2 seeds for these arms):**
+
+| Arm | seed 0 | seed 1 | mean ± sd |
+| --- | --- | --- | --- |
+| (d) scratch, same tokens | 3.9767 | 3.9741 | 3.9754 ± 0.0019 |
+| (c) uniform growth | 3.9853 | 3.9840 | 3.9847 ± 0.0010 |
+| (a2) M6 growth | 3.9986 | 3.9885 | 3.9935 ± 0.0071 |
+| (e) scratch, matched FLOPs (91-step warmup) | 4.0359 | 4.0250 | 4.0304 ± 0.0077 |
+
+| Paired comparison (M, 2 seeds) | Δ mean ± sd | p |
+| --- | --- | --- |
+| M6 − uniform growth | +0.0089 ± 0.0061 | 0.29 |
+| uniform growth − (e) matched-FLOPs scratch (**Claim A**) | **−0.0458 ± 0.0067** | 0.07 |
+| M6 − (e) matched-FLOPs scratch | −0.0369 ± 0.0006 | 0.01 |
+| uniform growth − (d) scratch, same tokens | +0.0092 ± 0.0009 | 0.04 |
+
+**Updated reading.**
+- **Metric-driven growth:** no evidence that any metric beats uniform growth at either scale. At S it is a wash over 6 seeds; at M, M6 is slightly worse in both seeds.
+- **Claim A:** scale-dependent. At S, growth loses to a FLOP-matched from-scratch model (4 seeds). At M it wins by ~0.046 nats in both seeds, while costing ~0.009 vs a from-scratch model that uses 12% more FLOPs. The M runs are short (300M tokens, ~8 tokens/param), so this may be a short-training effect. Confirming it at the full 800M-token M budget and at 124M is the most useful next experiment.

@@ -1,6 +1,6 @@
 # STATUS
 
-**Current state (07:28 EDT):** REPORT.md written and committed. Now running post-report extra seeds (tmux `extra`, scripts/jobs_extra.tsv): M seed 1 for scratch, uniform, e, M6; S seeds 4–5 for M6 and uniform. Launch cutoff 09:14. Checkpoints/logs remain server-side in `~/organic-growth/runs/` (not synced); small results are in `results/`.
+**Current state (08:50 EDT): DONE.** REPORT.md (incl. §8 "Added after report") committed. No GPU jobs running on server1. Checkpoints/logs remain server-side in `~/organic-growth/runs/` (not synced); small results are in `results/`.
 
 **Start time:** 2026-09-25 00:44 EDT (04:44 UTC). **Hard deadline:** 2026-09-25 10:44 EDT.
 
@@ -41,3 +41,4 @@
 - 06:35 M results so far (1 seed): scratch 3.9767, uniform 3.9853, M1b 3.9991, M6 3.9986. Running: M random, M −M3, M (e), S seed 3 (M6, uniform, e′).
 - 07:20 Queue empty: M arms (7) and S seed-3 runs done. Isolated throughput benchmark (idle GPU): S scratch 0.99M tok/s, S growth (2× prealloc) 0.79M, M scratch 0.51M, M growth 0.38M.
 - 07:25 Final analysis (results/stage2_tables.md), plots, REPORT.md committed. GPU idle.
+- 08:46 Post-report extra seeds done (S seeds 4–5 for M6/uniform; M seed 1 for d, c, e, M6). REPORT §8 appended; TL;DR carries a pointer to the update.
