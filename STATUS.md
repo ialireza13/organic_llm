@@ -1,6 +1,6 @@
 # STATUS
 
-**Current state (07:25 EDT): DONE.** All planned runs finished; REPORT.md written and committed. No GPU jobs are running on server1 (0 GPU processes, no tmux sessions). Checkpoints/logs remain server-side in `~/organic-growth/runs/` (not synced); small results are in `results/`.
+**Current state (07:28 EDT):** REPORT.md written and committed. Now running post-report extra seeds (tmux `extra`, scripts/jobs_extra.tsv): M seed 1 for scratch, uniform, e, M6; S seeds 4–5 for M6 and uniform. Launch cutoff 09:14. Checkpoints/logs remain server-side in `~/organic-growth/runs/` (not synced); small results are in `results/`.
 
 **Start time:** 2026-09-25 00:44 EDT (04:44 UTC). **Hard deadline:** 2026-09-25 10:44 EDT.
 
