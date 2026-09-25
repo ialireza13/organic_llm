@@ -84,8 +84,30 @@ __PLOTS__
 
 ## 6. What failed, was cut, or deviated from the prompt
 
-__DEVIATIONS__
+Full log with alternatives: [DECISIONS.md](DECISIONS.md). Timeline and incidents: [STATUS.md](STATUS.md).
+
+**Failed / incidents**
+- **Server container restart** (~02:38 EDT, during a 7-minute network outage) killed every running job: 4 Stage-2 runs (one at step 2400/2543) and the 4 oracle processes. About 40 min of GPU time was lost. I then added periodic resume checkpoints and auto-resume to `train.py` (tested).
+- **OOM, my fault** (01:35): an ad-hoc diagnostic run I started pushed GPU memory over 93 GB and killed two Stage-1 jobs. They were rerun.
+- **200-step oracle was noise**, and 600 steps was too slow on the shared GPU. The oracle was rerun once at 400 steps; it is only weakly reliable at the 30% checkpoint (ρ = 0.20).
+- **Arm (e) as first specified is confounded**: with warmup = 4% of its own (shorter) schedule, it trained into a worse regime at this edge-of-stability LR and ended 0.06 worse than the same run with the same *absolute* warmup (e′). (e) is reported, but (e′) is the valid matched-FLOPs baseline; seed 2 of (e) was dropped.
+
+**Cut**
+- **M scale reduced**: 300M tokens instead of 800M, **1 seed** instead of 2, batch 128 (2288 steps), LR 2.5e-3 (S optimum scaled ∝ 1/width, not re-tuned).
+- M4 skipped (as instructed). M2 splitting was only scored on FFN (by design) and was not selected.
+- No isolated per-arm tokens/s benchmark: the GPU was never idle. The logged tokens/s were measured with 4–8 jobs sharing a power-capped GPU and are only roughly comparable (see §4).
+
+**Deviations / judgement calls that matter for interpretation**
+- LR 4e-3 (sweep optimum) is close to the instability edge (8e-3 diverged). Full-width from-scratch runs are therefore much noisier across seeds (sd 0.028) than growth runs, which start small (sd ~0.008).
+- The per-event split between heads and FFN is decided by the metric (per the prompt), so metric arms add heads earlier than uniform/random and spend ~1–1.5% more training FLOPs (attention term). Final parameter counts are identical across growth arms.
+- Stage-2 metric selection followed the protocol (top 2 pooled ρ = M1b, M6) even though neither passed the go criterion. The extra −M3 arm is exploratory and was chosen post hoc.
+- Metric scores are EMA-smoothed (β = 0.5) over evaluations every ~60 steps on 64k held-out tokens. Metric compute is logged separately (M6: ~60 s per run, −M3: ~110 s, M1b: ~25 s, vs ~25–30 min runs). It is not included in train FLOPs.
+- Tokens/s for growth arms reflect the static-shape implementation: every run computes the 2×-target pre-allocated model regardless of how many units are active, so growth runs are ~1.3–1.5× slower per token than a target-size model. This is an implementation cost, not intrinsic to growth.
 
 ## 7. Recommended next steps (Stage 3)
 
-__NEXT__
+1. **Do not carry the current metric set forward as-is.** None of M1, M1b, M2, M3, M5, M6, M7 predicted the single-unit oracle, and M1b (the Stage-2 "winner") did not beat random growth. If a metric goes to Stage 3, carry **M6** (cheap, 3/3 seeds better than random growth at S, but p = 0.14) and the **−M3 / "late-layer" allocation** (the only ranking that tracked the oracle; 3/3 seeds better than random, p = 0.05 uncorrected), and treat both as hypotheses, not results.
+2. **Fix the oracle before trusting any metric ranking.** Single units (0.5% of params) give effects the size of run-to-run noise. Options: grow larger candidate units (e.g. +25% of a layer); average ≥4 init seeds; use deterministic kernels so control noise is 0; or measure the oracle at the end of a full schedule instead of after 400 steps.
+3. **Settle Claim A before scaling up.** At S, growth does not beat a FLOP-matched scratch model (uniform growth is 0.009 worse than (e′), 3/3 seeds). Part of the reason: at S the tied LM head is ~2/3 of the FLOPs, so growing only width saves just 8%. At GPT-2 scale (124M/350M) the non-embedding share is larger, so the potential saving is too. Re-test there with a compact (gathered) implementation so wall-clock savings are real.
+4. **Use a more stable LR** (or LR re-warmup for new units) in the next round, e.g. 2e-3–3e-3 at S. At 4e-3, seed noise for full-width models (sd 0.028) swamps the effects we want to measure. Use ≥4–5 seeds for any comparison under 0.01 nats.
+5. **Analyse allocation.** The two better-than-random policies made very different choices: M6 piles heads and FFN into layer 0, while −M3 adds heads to layers 1–5 and FFN to the top layers. So "any consistent non-uniform allocation beats random" is as plausible as "the metric matters". A fixed-allocation control (e.g. the final −M3 or M6 allocation, trained from scratch) would separate "growth path" from "final shape".

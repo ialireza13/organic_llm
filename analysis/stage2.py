@@ -68,7 +68,10 @@ def paired(stats, a, b):
     d = np.array([sa[s] - sb[s] for s in common])
     if len(d) == 0:
         return None
-    return {"n": len(d), "mean": float(d.mean()), "std": float(d.std(ddof=1)) if len(d) > 1 else float("nan"), "diffs": d.tolist()}
+    from scipy.stats import ttest_1samp
+    pv = float(ttest_1samp(d, 0).pvalue) if len(d) > 1 else float("nan")
+    return {"n": len(d), "mean": float(d.mean()), "std": float(d.std(ddof=1)) if len(d) > 1 else float("nan"),
+            "diffs": d.tolist(), "p": pv}
 
 
 def plots(rows, scale, out):
@@ -148,18 +151,18 @@ def main():
                 if b in st:
                     p = paired(st, m, b)
                     if p:
-                        comps.append(f"| {arm_label(m)} − {arm_label(b)} | {p['n']} | {p['mean']:+.4f} ± {p['std']:.4f} | " +
+                        comps.append(f"| {arm_label(m)} − {arm_label(b)} | {p['n']} | {p['mean']:+.4f} ± {p['std']:.4f} | {p['p']:.2f} | " +
                                      ", ".join(f"{x:+.4f}" for x in p["diffs"]) + " |")
         for a1, b in (("grow_random", "grow_uniform"), ("grow_uniform", "scratch"), ("grow_uniform", "scratch_flops"), ("grow_uniform", "scratch_flops_w101"), ("scratch_flops_w101", "scratch_flops"),
                       ("openelm", "scratch")):
             if a1 in st and b in st:
                 p = paired(st, a1, b)
                 if p:
-                    comps.append(f"| {arm_label(a1)} − {arm_label(b)} | {p['n']} | {p['mean']:+.4f} ± {p['std']:.4f} | " +
+                    comps.append(f"| {arm_label(a1)} − {arm_label(b)} | {p['n']} | {p['mean']:+.4f} ± {p['std']:.4f} | {p['p']:.2f} | " +
                                  ", ".join(f"{x:+.4f}" for x in p["diffs"]) + " |")
         if comps:
             md.append("Paired differences (same seed = same data order; negative = first arm better):\n\n"
-                      "| comparison | n | mean ± std | per seed |\n|---|---|---|---|\n" + "\n".join(comps) + "\n")
+                      "| comparison | n | mean ± std | paired t-test p | per seed |\n|---|---|---|---|---|\n" + "\n".join(comps) + "\n")
         plots(rows, scale, a.out)
     os.makedirs(a.out, exist_ok=True)
     open(os.path.join(os.path.dirname(a.out.rstrip("/")), "stage2_tables.md"), "w").write("\n".join(md))
