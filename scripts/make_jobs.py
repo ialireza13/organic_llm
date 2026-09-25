@@ -35,6 +35,10 @@ for arm, m in m_arms:
     extra = (f" --metric {m}" if m else "") + (" --match_growth_flops" if arm == "scratch_flops" else "")
     name = f"M_{arm}{'_' + m if m else ''}_s0"
     jobs.append((name, f"{CM} --scale M --arm {arm} --seed 0{extra}"))
+# extra seed for the closest S comparison (uses spare slots while M runs)
+jobs.append(("S_grow_metric_m6_s3", f"{C} --scale S --arm grow_metric --metric m6 --seed 3"))
+jobs.append(("S_grow_uniform_s3", f"{C} --scale S --arm grow_uniform --seed 3"))
+jobs.append(("S_scratch_flops_w101_s3", f"{C} --scale S --arm scratch_flops --seed 3 --match_growth_flops --warmup_frac 0.0431 --run_name S_scratch_flops_w101_s3"))
 with open("scripts/jobs.tsv", "w") as f:
     for n, c in jobs:
         f.write(f"{n}\t{c}\n")

@@ -32,3 +32,4 @@ One line each: what — why — alternative.
 - M LR = 2.5e-3 (S optimum 4e-3 × 384/640, i.e. ∝ 1/width), not re-tuned: 4e-3 is already at the stability edge at S, and a wider model would likely diverge. Same LR for every M arm. Alternative: reuse 4e-3.
 - Added diagnostic arm (e′): matched-FLOPs scratch with the warmup fixed at 101 steps (same absolute warmup as the 2543-step runs), 2 seeds. Reason: (e) with warmup = 4% of its own 2346 steps (93) ended 0.08 nats worse than (d) in both seeds, and the gap opens in the first 200 steps; (e′) shows whether Claim A comparisons are an LR-edge artifact.
 - Dropped arm (e) seed 2 (superseded by (e′)); (e) reported with 2 seeds.
+- Seed 3 added for M6, uniform growth and (e′) (closest S comparison), queued after M to use spare slots.
