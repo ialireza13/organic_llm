@@ -32,7 +32,8 @@ CM = C.replace("--micro 24 --lr " + lr, "--micro 16 --lr 2.5e-3")
 m_arms = [("scratch", ""), ("grow_uniform", ""), ("grow_metric", metrics[0]), ("grow_metric", metrics[1]),
           ("grow_random", ""), ("grow_metric", "m3neg"), ("scratch_flops", "")]
 for arm, m in m_arms:
-    extra = (f" --metric {m}" if m else "") + (" --match_growth_flops" if arm == "scratch_flops" else "")
+    # matched-FLOPs M run keeps the same absolute warmup (91 steps) as the 2288-step runs: 0.0446 * 2044 = 91
+    extra = (f" --metric {m}" if m else "") + (" --match_growth_flops --warmup_frac 0.0446" if arm == "scratch_flops" else "")
     name = f"M_{arm}{'_' + m if m else ''}_s0"
     jobs.append((name, f"{CM} --scale M --arm {arm} --seed 0{extra}"))
 # extra seed for the closest S comparison (uses spare slots while M runs)
