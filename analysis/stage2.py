@@ -11,12 +11,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-ORDER = ["grow_metric", "grow_random", "grow_uniform", "scratch", "scratch_flops", "openelm"]
+ORDER = ["grow_metric", "grow_random", "grow_uniform", "scratch", "scratch_flops", "scratch_flops_w101", "openelm"]
 LABEL = {"grow_random": "(b) random growth", "grow_uniform": "(c) uniform growth", "scratch": "(d) scratch, same tokens",
-         "scratch_flops": "(e) scratch, matched FLOPs", "openelm": "(f) OpenELM-style widths"}
+         "scratch_flops": "(e) scratch, matched FLOPs",
+         "scratch_flops_w101": "(e') scratch, matched FLOPs, warmup 101 steps", "openelm": "(f) OpenELM-style widths"}
 
 
 def arm_key(s):
+    if "w101" in s["name"]:
+        return "scratch_flops_w101"
     return f"grow_metric:{s['metric']}" if s["arm"] == "grow_metric" else s["arm"]
 
 
@@ -135,13 +138,13 @@ def main():
         comps = []
         mk = [k for k in st if k.startswith("grow_metric")]
         for m in mk:
-            for b in ("grow_random", "grow_uniform", "scratch", "scratch_flops", "openelm"):
+            for b in ("grow_random", "grow_uniform", "scratch", "scratch_flops", "scratch_flops_w101", "openelm"):
                 if b in st:
                     p = paired(st, m, b)
                     if p:
                         comps.append(f"| {arm_label(m)} − {arm_label(b)} | {p['n']} | {p['mean']:+.4f} ± {p['std']:.4f} | " +
                                      ", ".join(f"{x:+.4f}" for x in p["diffs"]) + " |")
-        for a1, b in (("grow_random", "grow_uniform"), ("grow_uniform", "scratch"), ("grow_uniform", "scratch_flops"),
+        for a1, b in (("grow_random", "grow_uniform"), ("grow_uniform", "scratch"), ("grow_uniform", "scratch_flops"), ("grow_uniform", "scratch_flops_w101"), ("scratch_flops_w101", "scratch_flops"),
                       ("openelm", "scratch")):
             if a1 in st and b in st:
                 p = paired(st, a1, b)

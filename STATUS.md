@@ -32,3 +32,4 @@
 - 03:30 **Stage 1 done** (400-step oracle). Oracle seed reliability: Spearman +0.20 @30%, +0.64 @60% (n=12). No metric positively correlated with the oracle (pooled ρ: M1b −0.19, M6 −0.23, M7 −0.28, M5 −0.31, M1 −0.35, M3 −0.64; M2 FFN-only −0.40). Selected M1b + M6 per protocol. Tables: results/oracle/stage1_table_oracle400*.md.
 - 03:32 Released Stage 2 throttle; metric arms (M1b, M6) launched for seed 0. Exploratory −M3 arm (3 seeds) appended at the end of the queue.
 - 03:45 M queued (300M tokens, 1 seed, 7 arms, lr 2.5e-3); M smoke test (40 steps, M1b growth) ok, ~16 GB/job.
+- 04:10 Interim: arm (e) matched-FLOPs scratch is 0.08 worse than (d) in both seeds, from the first ~200 steps (grad norm 0.35 vs 0.25); only difference is warmup 93 vs 101 steps + 8% fewer steps → LR-edge sensitivity. Queued diagnostic (e') with warmup fixed at 101 steps, seeds 0–1, at the front of the queue.

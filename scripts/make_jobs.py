@@ -10,6 +10,9 @@ for h in ("hold1", "hold2"):
     jobs.append((h, "while [ ! -f runs/resume_stage2 ]; do sleep 30; done"))
 # Stage 1 oracle base run: 50% width, room for one extra unit per layer; checkpoints at 30% and 60%
 jobs.append(("S_oraclebase", f"{C} --scale S --arm base_half --seed 0 --save_at 0.3,0.6 --stop_frac 0.6 --run_name S_oraclebase --results_dir results/oracle_base"))
+# diagnostic: arm (e) with the same absolute warmup (101 steps) as the 2543-step runs (0.0431 * 2346 = 101)
+for seed in (0, 1):
+    jobs.append((f"S_scratch_flops_w101_s{seed}", f"{C} --scale S --arm scratch_flops --seed {seed} --match_growth_flops --warmup_frac 0.0431 --run_name S_scratch_flops_w101_s{seed}"))
 for seed in (0, 1, 2):
     for m in metrics:
         jobs.append((f"S_grow_metric_{m}_s{seed}", f"{C} --scale S --arm grow_metric --metric {m} --seed {seed}"))
